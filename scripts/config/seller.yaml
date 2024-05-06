@@ -3,8 +3,10 @@ defaults:
   - _self_
 
 # checkpoint
-checkpoint_path: '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/sellerbot_weights.pt'
-save_path: '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/seller_bot'
+checkpoint_path: null
+
+#  '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/sellerbot.pt'
+save_path: '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/sellerbot'
 
 # env
 env_name: seller_env

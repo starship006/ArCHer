@@ -13,4 +13,4 @@ from os.path import dirname, abspath
 grand_grandparent_dir = dirname(dirname(dirname(dirname(abspath(__file__)))))
 print(grand_grandparent_dir)
 sys.path.insert(0, grand_grandparent_dir)
-from seller_env import SellerEnv
+from seller_env import BatchedSellerEnv

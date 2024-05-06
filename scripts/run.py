@@ -5,7 +5,7 @@ import sys
 from os.path import dirname, abspath
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 
-from archer.environment import TwentyQuestionsEnv, BatchedTwentyQuestionsEnv, BatchedGuessMyCityEnv, BatchedWebShopEnv, SellerEnv
+from archer.environment import TwentyQuestionsEnv, BatchedTwentyQuestionsEnv, BatchedGuessMyCityEnv, BatchedWebShopEnv, BatchedSellerEnv
 from archer.models import ArcherAgent, CHAIAgent
 from archer.algorithms import offpolicy_train_loop
 from archer.prompts import MISTRAL_TWENTY_QUESTIONS_TEMPLATE, mistral_twenty_questions_decode_actions
@@ -56,7 +56,8 @@ def main(config: "DictConfig"):
                                 env_load_path=config.env_load_path)
         eval_env = env
     elif config.env_name == "seller_env":
-        raise NotImplementedError("Seller environment is not implemented.")
+        env = BatchedSellerEnv()
+        eval_env = env
         
     else:
         raise NotImplementedError("Environment not implemented.")
