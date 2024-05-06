@@ -1,8 +1,11 @@
 import torch
 import transformers
 from tqdm import tqdm
-from archer.environment import TwentyQuestionsEnv, BatchedTwentyQuestionsEnv,\
-    BatchedAdventureEnv, BatchedGuessMyCityEnv, BatchedWebShopEnv
+import sys
+from os.path import dirname, abspath
+sys.path.insert(0, dirname(dirname(abspath(__file__))))
+
+from archer.environment import TwentyQuestionsEnv, BatchedTwentyQuestionsEnv, BatchedGuessMyCityEnv, BatchedWebShopEnv, SellerEnv
 from archer.models import ArcherAgent, CHAIAgent
 from archer.algorithms import offpolicy_train_loop
 from archer.prompts import MISTRAL_TWENTY_QUESTIONS_TEMPLATE, mistral_twenty_questions_decode_actions
@@ -21,6 +24,7 @@ transformers.logging.set_verbosity_error()
 CONFIG_NAME = "archer_20q"
 @hydra.main(version_base=None, config_path="./config/", config_name=CONFIG_NAME)
 def main(config: "DictConfig"):
+    print("hiiiii")
     colorful_print(">>> Configuration file: "+CONFIG_NAME+"<<<", fg='blue')
     colorful_print(OmegaConf.to_yaml(config), fg='red')
     try:
@@ -39,9 +43,8 @@ def main(config: "DictConfig"):
                                         cache_dir=config.cache_dir)
         eval_env = env
     elif config.env_name == "adventure":
-        env = BatchedAdventureEnv(env_load_path = config.env_load_path,
-                                    max_steps=50)
-        eval_env = env
+        raise NotImplementedError("Adventure environment is not implemented due to issue in Jericho import.")
+        
     elif config.env_name == "guess_my_city":
         env = BatchedGuessMyCityEnv(env_load_path=config.env_load_path, 
                                         device=device, 
@@ -52,6 +55,9 @@ def main(config: "DictConfig"):
                                 upper=config.webshop_upper,
                                 env_load_path=config.env_load_path)
         eval_env = env
+    elif config.env_name == "seller_env":
+        raise NotImplementedError("Seller environment is not implemented.")
+        
     else:
         raise NotImplementedError("Environment not implemented.")
     decode_f = lambda x:x

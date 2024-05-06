@@ -3,12 +3,12 @@ defaults:
   - _self_
 
 # checkpoint
-checkpoint_path: '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/twenty_questions_gpt2_model0_full.pt'
-save_path: '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/archer_20q_15'
+checkpoint_path: '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/sellerbot_weights.pt'
+save_path: '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/seller_bot'
 
 # env
-env_name: twenty_questions
-env_load_path: '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/20q_t5_oracle.pt'
+env_name: seller_env
+env_load_path: 'NA'
 
 # training hyperparameters
 rollout_size: 128 #number of rollout trajectories for each update
@@ -23,5 +23,5 @@ lm_lr: 1e-6
 
 # wandb logging
 use_wandb: True
-project_name: 'llm_rl_20qsubset'
-run_name: 'archer-acc'
+project_name: 'seller_bot'
+run_name: 'seller_bot'
