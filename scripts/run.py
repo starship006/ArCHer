@@ -24,7 +24,6 @@ transformers.logging.set_verbosity_error()
 CONFIG_NAME = "archer_20q"
 @hydra.main(version_base=None, config_path="./config/", config_name=CONFIG_NAME)
 def main(config: "DictConfig"):
-    print("hiiiii")
     colorful_print(">>> Configuration file: "+CONFIG_NAME+"<<<", fg='blue')
     colorful_print(OmegaConf.to_yaml(config), fg='red')
     try:
