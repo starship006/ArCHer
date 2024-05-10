@@ -35,3 +35,6 @@ tau: 0.1 #soft update parameter
 max_grad_norm: 1.0
 
 use_wandb: False
+
+# added
+model_path: null

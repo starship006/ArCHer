@@ -6,7 +6,9 @@ defaults:
 checkpoint_path: null
 
 #  '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/sellerbot.pt'
-save_path: '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/sellerbot'
+save_path: '~/checkpoints/sellerbot'
+#model_path: '~/models/Llama-2-7b-hf'
+model_path: '~/models/gpt2'
 
 # env
 env_name: seller_env
@@ -14,7 +16,8 @@ env_load_path: 'NA'
 
 # model
 #agent_type: 'archer_llm'
-# policy_lm : 'mistralai/Mistral-7B-Instruct-v0.2'
+#policy_lm : 'meta-llama/Llama-2-7b-hf'
+policy_lm : 'openai-community/gpt2'
 # max_new_tokens: 64
 # use_lora: True
 # eos_str: null
@@ -43,3 +46,7 @@ max_grad_norm: 1.0
 use_wandb: True
 project_name: 'seller_bot'
 run_name: 'seller_bot'
+
+# other stuff that needs to get config'd because isc
+save_freq: 1 # VERY FREQUENT CHECKPOINTING!
+eval_freq: 1

@@ -138,6 +138,7 @@ def offpolicy_train_loop(env,\
             wandb.log(info)
         if (i+1) % save_freq == 0 and save_path is not None and accelerator.is_main_process:
             print("Saving")
+            print("BRO WE NEED TO SWTICH TO THE ATOMIC SAVE LOL")
             trainer.save(os.path.join(save_path, 'trainer.pt'))
             torch.save(replay_buffer, os.path.join(save_path, 'replay_buffer.pt'))
     # return model

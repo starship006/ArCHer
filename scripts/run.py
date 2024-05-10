@@ -21,6 +21,12 @@ from datetime import timedelta
 from accelerate import DistributedDataParallelKwargs, InitProcessGroupKwargs
 transformers.logging.set_verbosity_error()
 
+from cycling_utils import TimestampedTimer
+timer = TimestampedTimer()
+from cycling_utils import InterruptableDistributedSampler, MetricsTracker, AtomicDirectory
+
+
+
 CONFIG_NAME = "archer_20q"
 @hydra.main(version_base=None, config_path="./config/", config_name=CONFIG_NAME)
 def main(config: "DictConfig"):
@@ -34,6 +40,11 @@ def main(config: "DictConfig"):
 
     accelerator = Accelerator(InitProcessGroupKwargs(timeout=timedelta(18000)))
     device = accelerator.device
+    
+    if accelerator.is_main_process:  
+        timer.report("imports done | loading envs")
+        print("OH YEAH ALSO IM THE ONLY GUY HERE")
+    
 
     # load environment
     if config.env_name == "twenty_questions":
@@ -61,6 +72,17 @@ def main(config: "DictConfig"):
     else:
         raise NotImplementedError("Environment not implemented.")
     decode_f = lambda x:x
+    
+    if accelerator.is_main_process:  timer.report("envs done | loading agent")
+    
+    if config.model_path is not None:
+        if config.model_path[0] == "~":
+            global_model_path = os.path.expanduser(config.model_path)
+        else:
+            global_model_path = config.model_path
+    else:
+        global_model_path = None        
+            
     # load decision model
     if config.agent_type.lower() == "chai":
         print(">>> Using CHAI agent")
@@ -77,7 +99,7 @@ def main(config: "DictConfig"):
                             temperature=config.temperature, do_sample=config.do_sample, 
                             policy_lm=config.policy_lm, critic_lm=config.critic_lm,
                             cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
-                            eos_str='\n')
+                            eos_str='\n', model_path = global_model_path)
     elif config.agent_type.lower() == "archer_llm":
         #only twenty questions is supported for LLM ArCHer
         print(">>> Using ArCHer agent with LLM")
@@ -86,7 +108,7 @@ def main(config: "DictConfig"):
                             policy_lm=config.policy_lm, critic_lm=config.critic_lm,
                             cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
                             TEMPLATE=MISTRAL_TWENTY_QUESTIONS_TEMPLATE, use_lora=config.use_lora,
-                            eos_str=config.eos_str)
+                            eos_str=config.eos_str, model_path = global_model_path)
         decode_f = mistral_twenty_questions_decode_actions
     elif config.agent_type.lower() == "online_filteredbc":
         print(">>> Using Online FilteredBC agent")
@@ -102,10 +124,12 @@ def main(config: "DictConfig"):
         state_dict = torch.load(config.checkpoint_path, map_location=device)['model_state_dict']
         agent.model.load_state_dict(state_dict)
     # agent = accelerator.prepare(agent)
-
+    if accelerator.is_main_process: timer.report("agent done | loading wandb")
+    
     if config.use_wandb and accelerator.is_main_process:
         wandb.login(key=config.wandb_key)
         wandb.init(project=config.project_name, name=config.run_name, config=dict(config))
+    if accelerator.is_main_process: timer.report("wand done | beginning training")
 
     offpolicy_train_loop(env = env,
                 agent = agent,
