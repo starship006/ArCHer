@@ -7,20 +7,20 @@ checkpoint_path: null
 
 #  '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/sellerbot.pt'
 save_path: '~/checkpoints/sellerbot'
-#model_path: '~/models/Llama-2-7b-hf'
-model_path: '~/models/gpt2'
+model_path: '~/models/Llama-2-7b-hf'
+#model_path: '~/models/gpt2'
 
 # env
 env_name: seller_env
 env_load_path: 'NA'
 
 # model
-#agent_type: 'archer_llm'
-#policy_lm : 'meta-llama/Llama-2-7b-hf'
-policy_lm : 'openai-community/gpt2'
-# max_new_tokens: 64
-# use_lora: True
-# eos_str: null
+agent_type: 'archer_llm'
+policy_lm : 'meta-llama/Llama-2-7b-hf'
+#policy_lm : 'openai-community/gpt2'
+max_new_tokens: 200
+use_lora: False
+eos_str: null
 
 
 # training hyperparameters

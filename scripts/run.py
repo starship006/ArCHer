@@ -84,47 +84,59 @@ def main(config: "DictConfig"):
         global_model_path = None        
             
     # load decision model
-    if config.agent_type.lower() == "chai":
-        print(">>> Using CHAI agent")
-        agent = CHAIAgent(device=device, accelerator=accelerator, 
-                        temperature=config.temperature, 
-                        do_sample=config.do_sample, policy_lm=config.policy_lm, 
-                        critic_lm=config.critic_lm, cache_dir=config.cache_dir,
-                        max_new_tokens=config.max_new_tokens, eos_str = config.eos_str)
-        #if use chai, do not update the actor
-        config.warmup_iter = config.iterations
-    elif config.agent_type.lower() == "archer":
-        print(">>> Using ArCHer agent")
-        agent = ArcherAgent(device=device, accelerator=accelerator, 
-                            temperature=config.temperature, do_sample=config.do_sample, 
-                            policy_lm=config.policy_lm, critic_lm=config.critic_lm,
-                            cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
-                            eos_str='\n', model_path = global_model_path)
-    elif config.agent_type.lower() == "archer_llm":
-        #only twenty questions is supported for LLM ArCHer
-        print(">>> Using ArCHer agent with LLM")
-        agent = ArcherAgent(device=device, accelerator=accelerator, 
-                            temperature=config.temperature, do_sample=config.do_sample, 
-                            policy_lm=config.policy_lm, critic_lm=config.critic_lm,
-                            cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
-                            TEMPLATE=MISTRAL_TWENTY_QUESTIONS_TEMPLATE, use_lora=config.use_lora,
-                            eos_str=config.eos_str, model_path = global_model_path)
-        decode_f = mistral_twenty_questions_decode_actions
-    elif config.agent_type.lower() == "online_filteredbc":
-        print(">>> Using Online FilteredBC agent")
-        # the agent is the same as ArCHer, only the trainer will be different
-        agent = ArcherAgent(device=device, accelerator=accelerator, 
-                            temperature=config.temperature, do_sample=config.do_sample, 
-                            policy_lm=config.policy_lm, critic_lm=config.critic_lm,
-                            cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens)
+    if accelerator.is_main_process:
+        if config.agent_type.lower() == "chai":
+            print(">>> Using CHAI agent")
+            agent = CHAIAgent(device=device, accelerator=accelerator, 
+                            temperature=config.temperature, 
+                            do_sample=config.do_sample, policy_lm=config.policy_lm, 
+                            critic_lm=config.critic_lm, cache_dir=config.cache_dir,
+                            max_new_tokens=config.max_new_tokens, eos_str = config.eos_str)
+            #if use chai, do not update the actor
+            config.warmup_iter = config.iterations
+        elif config.agent_type.lower() == "archer":
+            print(">>> Using ArCHer agent")
+            agent = ArcherAgent(device=device, accelerator=accelerator, 
+                                temperature=config.temperature, do_sample=config.do_sample, 
+                                policy_lm=config.policy_lm, critic_lm=config.critic_lm,
+                                cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
+                                eos_str='\n', model_path = global_model_path)
+        elif config.agent_type.lower() == "archer_llm":
+            #only twenty questions is supported for LLM ArCHer
+            print(">>> Using ArCHer agent with LLM")
+            agent = ArcherAgent(device=device, accelerator=accelerator, 
+                                temperature=config.temperature, do_sample=config.do_sample, 
+                                policy_lm=config.policy_lm, critic_lm=config.critic_lm,
+                                cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
+                                TEMPLATE=MISTRAL_TWENTY_QUESTIONS_TEMPLATE, use_lora=config.use_lora,
+                                eos_str=config.eos_str, model_path = global_model_path)
+            decode_f = mistral_twenty_questions_decode_actions
+        elif config.agent_type.lower() == "online_filteredbc":
+            print(">>> Using Online FilteredBC agent")
+            # the agent is the same as ArCHer, only the trainer will be different
+            agent = ArcherAgent(device=device, accelerator=accelerator, 
+                                temperature=config.temperature, do_sample=config.do_sample, 
+                                policy_lm=config.policy_lm, critic_lm=config.critic_lm,
+                                cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens)
+        else:
+            raise NotImplementedError("Agent not implemented.")
     else:
-        raise NotImplementedError("Agent not implemented.")
-    tokenizer = agent.tokenizer
-    if config.checkpoint_path is not None:
+        agent = None
+    accelerator.wait_for_everyone()
+        
+     
+    if accelerator.is_main_process: timer.report("agent done | loading tokenizer")
+    if accelerator.is_main_process:
+        tokenizer = agent.tokenizer
+    else:
+        tokenizer = None
+    
+    if config.checkpoint_path is not None and accelerator.is_main_process:
+        print("loading in checkpoints!")
         state_dict = torch.load(config.checkpoint_path, map_location=device)['model_state_dict']
         agent.model.load_state_dict(state_dict)
     # agent = accelerator.prepare(agent)
-    if accelerator.is_main_process: timer.report("agent done | loading wandb")
+    if accelerator.is_main_process: timer.report("tokenizer done | loading wandb")
     
     if config.use_wandb and accelerator.is_main_process:
         wandb.login(key=config.wandb_key)

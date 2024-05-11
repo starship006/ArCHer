@@ -27,11 +27,12 @@ class ArcherAgent(torch.nn.Module):
             self.model = AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path = model_path,
                                                               cache_dir=cache_dir,
                                                               torch_dtype = torch.bfloat16,
-                                                              token = HUGGINGFACE_API_KEY).to(device)
+                                                              token = HUGGINGFACE_API_KEY)#.to(device)
         else:
             self.model = AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path = model_path,
                                                               cache_dir=cache_dir,
-                                                              token = HUGGINGFACE_API_KEY).to(device)
+                                                              token = HUGGINGFACE_API_KEY)#.to(device)
+        print("to.device has been removed(), be careful!")
         if use_lora:
             from peft import LoraConfig, TaskType, get_peft_model
             lora_config = LoraConfig(
