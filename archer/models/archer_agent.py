@@ -33,6 +33,7 @@ class ArcherAgent(torch.nn.Module):
                                                               cache_dir=cache_dir,
                                                               token = HUGGINGFACE_API_KEY)#.to(device)
         print("to.device has been removed(), be careful!")
+        #print("to.device is stil in hmmmmm!")
         if use_lora:
             from peft import LoraConfig, TaskType, get_peft_model
             lora_config = LoraConfig(

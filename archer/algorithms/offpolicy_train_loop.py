@@ -10,6 +10,10 @@ import threading
 import os
 import torch
 import time
+
+from cycling_utils import InterruptableDistributedSampler, MetricsTracker, AtomicDirectory
+
+
 def offpolicy_train_loop(env,\
                 eval_env,\
                 agent,\
@@ -39,41 +43,49 @@ def offpolicy_train_loop(env,\
                 eval_freq: int = 25,
                 agent_type: str = "archer",
                 decode_f: callable = lambda x: x,
+                timer = None,
                 **kwargs):
-    if agent_type.lower() == "chai" or agent_type.lower() == "archer"\
-        or agent_type.lower() == "archer_llm":
-        trainer = ArcherTrainer(agent=agent,\
-                            accelerator=accelerator,\
-                                tokenizer=tokenizer,\
-                                critic_lr = critic_lr,\
-                                lm_lr = lm_lr,\
-                                gamma = gamma,\
-                                tau = tau,\
-                                epochs = epochs,\
-                                actor_epochs = actor_epochs,
-                                grad_accum_steps=grad_accum_steps,
-                                max_grad_norm=max_grad_norm)
-    elif agent_type.lower() == "online_filteredbc":
-        trainer = BCTrainer(agent=agent,\
-                                tokenizer=tokenizer,\
-                                accelerator=accelerator,
-                                lm_lr = lm_lr,\
-                                epochs = actor_epochs,\
-                                grad_accum_steps=grad_accum_steps,
-                                max_grad_norm=max_grad_norm)
+    assert timer != None
+    
+    if accelerator.is_main_process:
+        if agent_type.lower() == "chai" or agent_type.lower() == "archer"\
+            or agent_type.lower() == "archer_llm":
+            trainer = ArcherTrainer(agent=agent,\
+                                accelerator=accelerator,\
+                                    tokenizer=tokenizer,\
+                                    critic_lr = critic_lr,\
+                                    lm_lr = lm_lr,\
+                                    gamma = gamma,\
+                                    tau = tau,\
+                                    epochs = epochs,\
+                                    actor_epochs = actor_epochs,
+                                    grad_accum_steps=grad_accum_steps,
+                                    max_grad_norm=max_grad_norm)
+        elif agent_type.lower() == "online_filteredbc":
+            trainer = BCTrainer(agent=agent,\
+                                    tokenizer=tokenizer,\
+                                    accelerator=accelerator,
+                                    lm_lr = lm_lr,\
+                                    epochs = actor_epochs,\
+                                    grad_accum_steps=grad_accum_steps,
+                                    max_grad_norm=max_grad_norm)
+    else:
+        trainer = None
+        
+        
     replay_buffer= ReplayBuffer(batch_size= batch_size, capacity=capacity)
     all_trajectories = []
-    if accelerator.is_main_process:
-        if os.path.exists(os.path.join(save_path, 'trainer.pt')):
-            # print("Not using existing checkpoint")
-            print("Loading from checkpoint")
-            trainer.load(os.path.join(save_path, 'trainer.pt'))
-            all_trajectories = torch.load(os.path.join(save_path, 'trajectories.pt'))
-            replay_buffer = torch.load(os.path.join(save_path, 'replay_buffer.pt'))
-        else:
-            print("Creating new checkpoint directory")
-            os.makedirs(save_path, exist_ok=True)
+    if os.path.exists(os.path.join(save_path, 'trainer.pt')):
+        # print("Not using existing checkpoint")
+        print("Loading from checkpoint")
+        trainer.load(os.path.join(save_path, 'trainer.pt'))
+        all_trajectories = torch.load(os.path.join(save_path, 'trajectories.pt'))
+        replay_buffer = torch.load(os.path.join(save_path, 'replay_buffer.pt'))
+    else:
+        print("Creating new checkpoint directory")
+        os.makedirs(save_path, exist_ok=True)
     agent.prepare()
+    accelerator.wait_for_everyone()
     #main training loop
     print(">>>start iterations")
     for i in tqdm(range(iterations)):
@@ -141,4 +153,5 @@ def offpolicy_train_loop(env,\
             print("BRO WE NEED TO SWTICH TO THE ATOMIC SAVE LOL")
             trainer.save(os.path.join(save_path, 'trainer.pt'))
             torch.save(replay_buffer, os.path.join(save_path, 'replay_buffer.pt'))
+            timer.report("one iteration done, and has fully saved")
     # return model
