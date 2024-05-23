@@ -149,4 +149,5 @@ def main(config: "DictConfig"):
 
 
 if __name__ == "__main__":
+    print("ran")
     main()
