@@ -2,8 +2,8 @@
 cache_dir: '/Users/codyrushing/Documents/dev/GitHub/seller_agents/.cache/'
 
 #token
-huggingface_token: ''
-wandb_key: ""
+huggingface_token: '' # not used, check .env
+wandb_key: "" # not used, check .env
 
 
 policy_lm: "gpt2"

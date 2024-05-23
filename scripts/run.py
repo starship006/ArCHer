@@ -25,6 +25,12 @@ from cycling_utils import TimestampedTimer
 timer = TimestampedTimer()
 from cycling_utils import InterruptableDistributedSampler, MetricsTracker, AtomicDirectory
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+WANDB_API_KEY = os.getenv('WANDB_API_KEY')
+
 
 
 CONFIG_NAME = "archer_20q"
@@ -134,7 +140,7 @@ def main(config: "DictConfig"):
     if accelerator.is_main_process: timer.report("tokenizer done | loading wandb")
     
     if config.use_wandb and accelerator.is_main_process:
-        wandb.login(key=config.wandb_key)
+        wandb.login(key=WANDB_API_KEY)
         wandb.init(project=config.project_name, name=config.run_name, config=dict(config))
     if accelerator.is_main_process: timer.report("wand done | beginning training")
 
