@@ -36,8 +36,8 @@ WANDB_API_KEY = os.getenv('WANDB_API_KEY')
 CONFIG_NAME = "archer_20q"
 @hydra.main(version_base=None, config_path="./config/", config_name=CONFIG_NAME)
 def main(config: "DictConfig"):
-    colorful_print(">>> Configuration file: "+CONFIG_NAME+"<<<", fg='blue')
-    colorful_print(OmegaConf.to_yaml(config), fg='red')
+    #colorful_print(">>> Configuration file: "+CONFIG_NAME+"<<<", fg='blue')
+    #colorful_print(OmegaConf.to_yaml(config), fg='red')
     try:
         from huggingface_hub import login
         login(token=config.huggingface_token)

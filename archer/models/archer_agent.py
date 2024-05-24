@@ -22,7 +22,8 @@ class ArcherAgent(torch.nn.Module):
         
         if model_path is None:
             model_path = policy_lm # dont use a model path just kinda use the name of the model LOL
-        
+        print("ready to load")
+        accelerator.wait_for_everyone()
         if use_bfloat16:
             self.model = AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path = model_path,
                                                               cache_dir=cache_dir,
@@ -33,8 +34,10 @@ class ArcherAgent(torch.nn.Module):
                                                               cache_dir=cache_dir,
                                                               token = HUGGINGFACE_API_KEY)#.to(device)
         print("to.device has been removed(), be careful!")
+        accelerator.wait_for_everyone()
         #print("to.device is stil in hmmmmm!")
         if use_lora:
+            print("Using LoRA")
             from peft import LoraConfig, TaskType, get_peft_model
             lora_config = LoraConfig(
                 r=16,
@@ -44,8 +47,9 @@ class ArcherAgent(torch.nn.Module):
                 lora_dropout=0.05
             )
             self.model = get_peft_model(self.model, lora_config)
-            print("Using LoRA")
+            print("LoRA Loaded")
             self.model.print_trainable_parameters()
+        accelerator.wait_for_everyone()
         self.template = TEMPLATE
         self.policy_lm = policy_lm
         self.critic = DoubleCritic(device, accelerator, critic_lm = critic_lm, cache_dir = cache_dir, in_dim = 768, out_dim = 1)  

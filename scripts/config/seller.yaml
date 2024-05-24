@@ -26,7 +26,7 @@ critic_lm : '/data/roberta-base'
 
 #policy_lm : 'openai-community/gpt2'
 max_new_tokens: 200
-use_lora: False
+use_lora: True  # CHANGED
 eos_str: null
 
 
