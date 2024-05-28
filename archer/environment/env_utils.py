@@ -40,15 +40,26 @@ def add_mc_return(trajectory, gamma = 0.95):
 
 def batch_interact_environment(agent, tokenizer, env, num_trajectories,\
         post_f = lambda x: x, use_tqdm = True, decode_f = lambda x: x,
-        env_idx = None):
+        env_idx = None, accelerator = None, timer = None):
     """
     in a bacthed way, interact with the environments  to get a list of trajectories
     [[{"observation":, "next_observation":, "reward":, "done":},...],...]
     post_f: function to add additional attributes to the trajectory
     """
+    print("batch started")
+    assert accelerator is not None
+    assert timer is not None
+    if decode_f is None:
+        decode_f = lambda x:x
+    
+    
+    
+    
     bsize = env.bsize
     all_trajectories = []
     for num_t in tqdm(range(num_trajectories//bsize), disable = not use_tqdm):
+        print("num_t: " + str(num_t))
+        
         done = False
         trajectories = [[] for _ in range(bsize)]
         # obs = reset_to(env, 69)
@@ -56,10 +67,13 @@ def batch_interact_environment(agent, tokenizer, env, num_trajectories,\
         batch_done = [False,]*bsize
         steps = 0
         while not all(batch_done):
+            if accelerator.is_main_process: timer.report("step: " + str(steps) + "agent gen")
             steps += 1
             # print(f"Environment stpes {str(steps)}")
             action = agent.get_action(batch_obs)
+            if accelerator.is_main_process: timer.report("step: " + str(steps) + "agent action received, stepping")
             batch_return = env.step(decode_f(action))
+            if accelerator.is_main_process: timer.report("step: " + str(steps) + "env step return, processing")
             for i,result in zip(range(bsize), batch_return):
                 if result is None:
                     continue
@@ -71,10 +85,12 @@ def batch_interact_environment(agent, tokenizer, env, num_trajectories,\
                                 "action": action[i]})
                 batch_obs[i] = next_obs
                 batch_done[i] = done
+            if accelerator.is_main_process: timer.report("step: " + str(steps) + "processing done, looping")
             # obs = next_obs
         print(trajectories[0][-1]["next_observation"])
         all_trajectories += [post_f(add_mc_return(add_trajectory_reward(trajectory)))\
                               for trajectory in trajectories]
         # breakpoint()
         # trajectories.append(post_f(add_trajectory_reward(trajectory)))
+    print("batch ended")
     return all_trajectories

@@ -72,7 +72,7 @@ def main(config: "DictConfig"):
                                 env_load_path=config.env_load_path)
         eval_env = env
     elif config.env_name == "seller_env":
-        env = BatchedSellerEnv()
+        env = BatchedSellerEnv(bsize = config.batch_size)
         eval_env = env
         
     else:
@@ -113,9 +113,11 @@ def main(config: "DictConfig"):
                             temperature=config.temperature, do_sample=config.do_sample, 
                             policy_lm=config.policy_lm, critic_lm=config.critic_lm,
                             cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
-                            TEMPLATE=MISTRAL_TWENTY_QUESTIONS_TEMPLATE, use_lora=config.use_lora,
-                            eos_str=config.eos_str, model_path = global_model_path)
-        decode_f = mistral_twenty_questions_decode_actions
+                            TEMPLATE=None, use_lora=config.use_lora,
+                            eos_str=config.eos_str, model_path = global_model_path, use_bfloat16 = config.use_bfloat16)
+        decode_f = None # mistral_twenty_questions_decode_actions # We don't want to use this!
+        
+        
     elif config.agent_type.lower() == "online_filteredbc":
         print(">>> Using Online FilteredBC agent")
         # the agent is the same as ArCHer, only the trainer will be different

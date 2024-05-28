@@ -47,30 +47,29 @@ def offpolicy_train_loop(env,\
                 **kwargs):
     assert timer != None
     
-    if accelerator.is_main_process:
-        if agent_type.lower() == "chai" or agent_type.lower() == "archer"\
-            or agent_type.lower() == "archer_llm":
-            trainer = ArcherTrainer(agent=agent,\
-                                accelerator=accelerator,\
-                                    tokenizer=tokenizer,\
-                                    critic_lr = critic_lr,\
-                                    lm_lr = lm_lr,\
-                                    gamma = gamma,\
-                                    tau = tau,\
-                                    epochs = epochs,\
-                                    actor_epochs = actor_epochs,
-                                    grad_accum_steps=grad_accum_steps,
-                                    max_grad_norm=max_grad_norm)
-        elif agent_type.lower() == "online_filteredbc":
-            trainer = BCTrainer(agent=agent,\
-                                    tokenizer=tokenizer,\
-                                    accelerator=accelerator,
-                                    lm_lr = lm_lr,\
-                                    epochs = actor_epochs,\
-                                    grad_accum_steps=grad_accum_steps,
-                                    max_grad_norm=max_grad_norm)
-    else:
-        trainer = None
+    
+    if agent_type.lower() == "chai" or agent_type.lower() == "archer"\
+        or agent_type.lower() == "archer_llm":
+        trainer = ArcherTrainer(agent=agent,\
+                            accelerator=accelerator,\
+                                tokenizer=tokenizer,\
+                                critic_lr = critic_lr,\
+                                lm_lr = lm_lr,\
+                                gamma = gamma,\
+                                tau = tau,\
+                                epochs = epochs,\
+                                actor_epochs = actor_epochs,
+                                grad_accum_steps=grad_accum_steps,
+                                max_grad_norm=max_grad_norm)
+    elif agent_type.lower() == "online_filteredbc":
+        trainer = BCTrainer(agent=agent,\
+                                tokenizer=tokenizer,\
+                                accelerator=accelerator,
+                                lm_lr = lm_lr,\
+                                epochs = actor_epochs,\
+                                grad_accum_steps=grad_accum_steps,
+                                max_grad_norm=max_grad_norm)
+
         
         
     replay_buffer= ReplayBuffer(batch_size= batch_size, capacity=capacity)
@@ -87,21 +86,25 @@ def offpolicy_train_loop(env,\
     agent.prepare()
     accelerator.wait_for_everyone()
     #main training loop
-    print(">>>start iterations")
+    if accelerator.is_main_process: timer.report("start iterations")
     for i in tqdm(range(iterations)):
-        # print(">>>Interacting with Environment")
         if accelerator.is_main_process:
+            print(">>>Interacting with Environment")
+            if accelerator.is_main_process: timer.report(f"train env interaction start | num_trajectories = {rollout_size}, env.bsize = {env.bsize}")
             trajectories = batch_interact_environment(agent = agent,\
                                             tokenizer= tokenizer,\
                                             env = env,\
                                             num_trajectories= rollout_size,\
                                             env_idx = env_idx,
                                             use_tqdm=False,
-                                            decode_f = decode_f)
+                                            decode_f = decode_f, 
+                                            accelerator = accelerator,
+                                            timer = timer)
             info = {"rollout.mean": np.mean([d[0]["trajectory_reward"] for d in trajectories]),\
                     "rollout.max": np.max([d[0]["trajectory_reward"] for d in trajectories]),\
                     "rollout.min": np.min([d[0]["trajectory_reward"] for d in trajectories])}
             if (i+1) % eval_freq == 0:
+                if accelerator.is_main_process: timer.report("eval env interaction start")
                 old_sample = agent.do_sample
                 agent.do_sample = False
                 eval_trajectories =  batch_interact_environment(agent = agent,\
@@ -110,11 +113,15 @@ def offpolicy_train_loop(env,\
                                                     num_trajectories=  max(eval_size, eval_env.bsize),\
                                                     env_idx = env_idx,
                                                     use_tqdm=False,
-                                                    decode_f = decode_f)
+                                                    decode_f = decode_f, 
+                                                    accelerator = accelerator, 
+                                                    timer = timer)
                 agent.do_sample = old_sample
                 info.update({"eval_rollout.mean": np.mean([d[0]["trajectory_reward"] for d in eval_trajectories]),\
                         "eval_rollout.max": np.max([d[0]["trajectory_reward"] for d in eval_trajectories]),\
                         "eval_rollout.min": np.min([d[0]["trajectory_reward"] for d in eval_trajectories]),})
+            
+            if accelerator.is_main_process: timer.report("done gathering trajectories")
             all_trajectories += trajectories
             data = sum(trajectories, [])
             for t in data:
@@ -130,9 +137,11 @@ def offpolicy_train_loop(env,\
         else:
             info = {}
         accelerator.wait_for_everyone()
+        if accelerator.is_main_process: timer.report("all env interactions done")
+        
         all_trajectories = torch.load(os.path.join(save_path, 'trajectories.pt'))
         replay_buffer = torch.load(os.path.join(save_path, 'replay_buffer.pt'))
-        print("Training")
+        if accelerator.is_main_process: timer.report("beginnning the training")
         if 'filtered' in agent_type.lower():
             filtered_buffer= ReplayBuffer(batch_size= batch_size, capacity=capacity)
             episode_rewards = [d[0]["trajectory_reward"] for d in all_trajectories]
@@ -148,10 +157,14 @@ def offpolicy_train_loop(env,\
             info.update(trainer.update(replay_buffer, no_update_actor = (i < warmup_iter)))
         if use_wandb and accelerator.is_main_process:
             wandb.log(info)
+        
+        if accelerator.is_main_process: timer.report("updates done - saving possibly now")
         if (i+1) % save_freq == 0 and save_path is not None and accelerator.is_main_process:
             print("Saving")
             print("BRO WE NEED TO SWTICH TO THE ATOMIC SAVE LOL")
             trainer.save(os.path.join(save_path, 'trainer.pt'))
             torch.save(replay_buffer, os.path.join(save_path, 'replay_buffer.pt'))
             timer.report("one iteration done, and has fully saved")
+            
+        if accelerator.is_main_process: timer.report("full iteration done")
     # return model
