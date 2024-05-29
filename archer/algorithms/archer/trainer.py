@@ -255,10 +255,15 @@ class ArcherTrainer():
                     'lm_optimizer_state_dict': self.lm_optimizer.state_dict()}, path)
 
     def load(self, path):
-        checkpoint = torch.load(path)
+        
+        # We've modified the below to load in via the CPU. This fixes a memory issue. The agent will/should be prepared down the line, and the critic/lm optimizer is re-prepared here.
+        checkpoint = torch.load(path, map_location=torch.device('cpu'))
         self.agent.model.load_state_dict(checkpoint['model_state_dict'])
         self.agent.critic.load_state_dict(checkpoint['critic_state_dict'])
         self.agent.target_critic.load_state_dict(checkpoint['target_critic_state_dict'])
         self.critic_optimizer.load_state_dict(checkpoint['critic_optimizer_state_dict'])
         self.lm_optimizer.load_state_dict(checkpoint['lm_optimizer_state_dict'])
+        
+        self.critic_optimizer, self.lm_optimizer = self.accelerator.prepare(self.critic_optimizer, self.lm_optimizer)
+        
         return self.agent

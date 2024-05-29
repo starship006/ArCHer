@@ -52,13 +52,13 @@ def batch_interact_environment(agent, tokenizer, env, num_trajectories,\
     if decode_f is None:
         decode_f = lambda x:x
     
-    
-    
-    
     bsize = env.bsize
     all_trajectories = []
+    YAP_TIME = False
+    
+    
     for num_t in tqdm(range(num_trajectories//bsize), disable = not use_tqdm):
-        print("num_t: " + str(num_t))
+        if accelerator.is_main_process: timer.report("trajectories gen" + str(num_t) + "of " + str(num_trajectories//bsize))
         
         done = False
         trajectories = [[] for _ in range(bsize)]
@@ -67,13 +67,13 @@ def batch_interact_environment(agent, tokenizer, env, num_trajectories,\
         batch_done = [False,]*bsize
         steps = 0
         while not all(batch_done):
-            if accelerator.is_main_process: timer.report("step: " + str(steps) + "agent gen")
+            if YAP_TIME and accelerator.is_main_process: timer.report("step: " + str(steps) + "agent gen")
             steps += 1
             # print(f"Environment stpes {str(steps)}")
             action = agent.get_action(batch_obs)
-            if accelerator.is_main_process: timer.report("step: " + str(steps) + "agent action received, stepping")
+            if YAP_TIME and accelerator.is_main_process: timer.report("step: " + str(steps) + "agent action received, stepping")
             batch_return = env.step(decode_f(action))
-            if accelerator.is_main_process: timer.report("step: " + str(steps) + "env step return, processing")
+            if YAP_TIME and accelerator.is_main_process: timer.report("step: " + str(steps) + "env step return, processing")
             for i,result in zip(range(bsize), batch_return):
                 if result is None:
                     continue
@@ -85,7 +85,7 @@ def batch_interact_environment(agent, tokenizer, env, num_trajectories,\
                                 "action": action[i]})
                 batch_obs[i] = next_obs
                 batch_done[i] = done
-            if accelerator.is_main_process: timer.report("step: " + str(steps) + "processing done, looping")
+            if YAP_TIME and accelerator.is_main_process: timer.report("step: " + str(steps) + "processing done, looping")
             # obs = next_obs
         print(trajectories[0][-1]["next_observation"])
         all_trajectories += [post_f(add_mc_return(add_trajectory_reward(trajectory)))\

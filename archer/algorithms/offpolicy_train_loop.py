@@ -154,9 +154,9 @@ def offpolicy_train_loop(env,\
             info.update(trainer.update(filtered_buffer, no_update_actor = (i < warmup_iter)))
         else:
             # data = list(filter(lambda x: x["reward"] >0, data))
-            print(trainer)
+            #print(trainer)
             out = trainer.update(replay_buffer, no_update_actor = (i < warmup_iter))
-            print(out, info)
+            #print(out, info)
             info.update(out)
             
         accelerator.wait_for_everyone()
