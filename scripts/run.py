@@ -38,6 +38,11 @@ CONFIG_NAME = "archer_20q"
 def main(config: "DictConfig"):
     #colorful_print(">>> Configuration file: "+CONFIG_NAME+"<<<", fg='blue')
     #colorful_print(OmegaConf.to_yaml(config), fg='red')
+    
+    #if config.use_bfloat16:
+        #print("hi)")
+        #torch.set_default_dtype(torch.bfloat16) # if we don't include this a very weird bug occurs where the lm_optimizer bugs out. dont ask me why this works.
+    
     try:
         from huggingface_hub import login
         login(token=config.huggingface_token)

@@ -172,4 +172,6 @@ def offpolicy_train_loop(env,\
             timer.report("one iteration done, and has fully saved")
             
         if accelerator.is_main_process: timer.report("full iteration done")
+        accelerator.wait_for_everyone()
     # return model
+
