@@ -136,8 +136,12 @@ def main(config: "DictConfig"):
     
     if config.checkpoint_path is not None:
         print("loading in checkpoints!")
-        state_dict = torch.load(config.checkpoint_path, map_location=device)['model_state_dict']
-        agent.model.load_state_dict(state_dict)
+        try:
+            state_dict = torch.load(config.checkpoint_path, map_location=device)['model_state_dict']
+            agent.model.load_state_dict(state_dict)
+        except:
+            print("no checkpoint found, continuing")
+            
     # agent = accelerator.prepare(agent)
     if accelerator.is_main_process: timer.report("tokenizer done | loading wandb")
     

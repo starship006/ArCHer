@@ -153,6 +153,7 @@ class ArcherTrainer():
                 "residual_advantages.std": torch.std(residual_advantage),}
 
     def update(self, replay_buffer, no_update_actor=False):
+        print("hi1")
         self.step += 1
         info = {}
         info_list = []
@@ -160,24 +161,28 @@ class ArcherTrainer():
         with torch.autograd.set_detect_anomaly(True):
             # self.agent, self.critic_optimizer = self.accelerator.prepare(self.agent, self.critic_optimizer)
             for _ in range(self.epochs):
+                
                 data = [replay_buffer.sample(1) for _ in range(self.grad_accum_steps*replay_buffer.batch_size)]
                 for d in data:
                     for k,v in d.items():
                         d[k] = v[0]
+                
                 dataloader = DataLoader(DummyDataset(data), batch_size=replay_buffer.batch_size)
                 dataloader = self.accelerator.prepare(dataloader)
+                
                 # import IPython; IPython.embed()
                 # self.agent, self.critic_optimizer, dataloader = \
                 #     self.accelerator.prepare(self.agent,  self.critic_optimizer, dataloader)
                 self.critic_optimizer.zero_grad()
                 grad_index = 0
                 for batch in tqdm(dataloader, disable=True):
-
                     info_list.append(self.critic_loss(**batch))
                 self.accelerator.clip_grad_norm_(self.agent.parameters(), self.max_grad_norm)
+                
                 self.critic_optimizer.step()
                 # if self.accelerator.is_main_process:
                 self.agent.soft_update_target_critic(tau=self.tau)
+                
         info.update(dict_mean(info_list))
         info_list = []
         #update actor

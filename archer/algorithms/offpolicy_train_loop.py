@@ -81,7 +81,7 @@ def offpolicy_train_loop(env,\
         all_trajectories = torch.load(os.path.join(save_path, 'trajectories.pt'))
         replay_buffer = torch.load(os.path.join(save_path, 'replay_buffer.pt'))
     else:
-        print("Creating new checkpoint directory")
+        print("Creating new checkpoint directory at", save_path)
         os.makedirs(save_path, exist_ok=True)
     agent.prepare()
     accelerator.wait_for_everyone()
@@ -154,7 +154,12 @@ def offpolicy_train_loop(env,\
             info.update(trainer.update(filtered_buffer, no_update_actor = (i < warmup_iter)))
         else:
             # data = list(filter(lambda x: x["reward"] >0, data))
-            info.update(trainer.update(replay_buffer, no_update_actor = (i < warmup_iter)))
+            print(trainer)
+            out = trainer.update(replay_buffer, no_update_actor = (i < warmup_iter))
+            print(out, info)
+            info.update(out)
+            
+        accelerator.wait_for_everyone()
         if use_wandb and accelerator.is_main_process:
             wandb.log(info)
         
