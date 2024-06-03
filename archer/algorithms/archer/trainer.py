@@ -26,7 +26,8 @@ class ArcherTrainer():
                     tau: float = 0.1,
                     epochs: int = 3,
                     max_grad_norm: float=0.01,
-                    actor_epochs: int = 3):
+                    actor_epochs: int = 3,
+                    timer = None):
         """
         beta: coefficient for the bc loss
         """
@@ -45,6 +46,9 @@ class ArcherTrainer():
         self.max_grad_norm = max_grad_norm
         self.accelerator = accelerator
         self.critic_optimizer, self.lm_optimizer = self.accelerator.prepare(self.critic_optimizer, self.lm_optimizer)
+        
+        assert timer != None
+        self.timer = timer
 
     def critic_loss(self, observation, action, reward, next_observation, done, mc_return,**kwargs):
         reward = torch.Tensor(reward).to(self.accelerator.unwrap_model(self.agent.model).device, dtype = self.accelerator.unwrap_model(self.agent.model).dtype).flatten()
@@ -160,7 +164,9 @@ class ArcherTrainer():
         # self.agent.critic, self.agent.target_critic = self.accelerator.prepare(self.agent.critic, self.agent.target_critic)
         with torch.autograd.set_detect_anomaly(True):
             # self.agent, self.critic_optimizer = self.accelerator.prepare(self.agent, self.critic_optimizer)
-            for _ in range(self.epochs):
+            if self.accelerator.is_main_process: print("epochs" + str(self.epochs))
+            for critic_epoch in range(self.epochs):
+                if self.accelerator.is_main_process: self.timer.report(f"{critic_epoch} epoch")
                 
                 data = [replay_buffer.sample(1) for _ in range(self.grad_accum_steps*replay_buffer.batch_size)]
                 for d in data:
@@ -175,7 +181,7 @@ class ArcherTrainer():
                 #     self.accelerator.prepare(self.agent,  self.critic_optimizer, dataloader)
                 self.critic_optimizer.zero_grad()
                 grad_index = 0
-                for batch in tqdm(dataloader, disable=True):
+                for batch in tqdm(dataloader, disable=False):
                     info_list.append(self.critic_loss(**batch))
                 self.accelerator.clip_grad_norm_(self.agent.parameters(), self.max_grad_norm)
                 
@@ -189,8 +195,8 @@ class ArcherTrainer():
         if not no_update_actor:
             print(">>>updating actor")
             #batchsize for the actor set to 1 for mistral due to memory concern
-            action_bsize = 2 if 'mistral' in self.agent.policy_lm else replay_buffer.batch_size
-            #action_bsize = replay_buffer.batch_size
+            #action_bsize = 2 if 'mistral' in self.agent.policy_lm else replay_buffer.batch_size
+            action_bsize = replay_buffer.batch_size
             for _ in range(self.actor_epochs):
                 data = [replay_buffer.sample(1) for _ in range(self.grad_accum_steps*replay_buffer.batch_size)]
                 grad_index = 0
@@ -251,7 +257,7 @@ class ArcherTrainer():
         torch.save({'model_state_dict': self.accelerator.unwrap_model(self.agent.model).state_dict(),
                     'critic_state_dict': self.accelerator.unwrap_model(self.agent.critic).state_dict(),
                     'target_critic_state_dict': self.accelerator.unwrap_model(self.agent.target_critic).state_dict(),
-                    
+                    'step': self.step  # Save current step
                     }, path)
         # do it at the same path, but with a different name
         torch.save({'critic_optimizer_state_dict': self.critic_optimizer.state_dict()}, path.replace('.pt', '_critic_optim.pt'))
@@ -263,6 +269,7 @@ class ArcherTrainer():
         self.agent.model.load_state_dict(checkpoint['model_state_dict'])
         self.agent.critic.load_state_dict(checkpoint['critic_state_dict'])
         self.agent.target_critic.load_state_dict(checkpoint['target_critic_state_dict'])
+        self.step = checkpoint['step']  # Load saved step
         
         
         critic_optim_checkpoint = torch.load(path.replace('.pt', '_critic_optim.pt'))

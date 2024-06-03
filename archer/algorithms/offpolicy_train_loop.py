@@ -60,7 +60,8 @@ def offpolicy_train_loop(env,\
                                 epochs = epochs,\
                                 actor_epochs = actor_epochs,
                                 grad_accum_steps=grad_accum_steps,
-                                max_grad_norm=max_grad_norm)
+                                max_grad_norm=max_grad_norm,
+                                timer = timer)
     elif agent_type.lower() == "online_filteredbc":
         trainer = BCTrainer(agent=agent,\
                                 tokenizer=tokenizer,\
@@ -87,7 +88,9 @@ def offpolicy_train_loop(env,\
     accelerator.wait_for_everyone()
     #main training loop
     if accelerator.is_main_process: timer.report("start iterations")
-    for i in tqdm(range(iterations)):
+    
+    
+    for i in tqdm(range(trainer.step, iterations)):
         if accelerator.is_main_process:
             print(">>>Interacting with Environment")
             if accelerator.is_main_process: timer.report(f"train env interaction start | num_trajectories = {rollout_size}, env.bsize = {env.bsize}")
@@ -161,7 +164,7 @@ def offpolicy_train_loop(env,\
             
         accelerator.wait_for_everyone()
         if use_wandb and accelerator.is_main_process:
-            wandb.log(info)
+            wandb.log(info, step=trainer.step)  # Log with the current step
         
         if accelerator.is_main_process: timer.report("updates done - saving possibly now")
         if (i+1) % save_freq == 0 and save_path is not None and accelerator.is_main_process:

@@ -77,7 +77,12 @@ def main(config: "DictConfig"):
                                 env_load_path=config.env_load_path)
         eval_env = env
     elif config.env_name == "seller_env":
-        env = BatchedSellerEnv(bsize = config.batch_size)
+        env_bs = config.batch_size
+        if config.batch_size > 4:
+            print("we are currently going to get rate limited! i will need to take this down to 4!")
+            env_bs = 4
+            
+        env = BatchedSellerEnv(bsize = env_bs)
         eval_env = env
         
     else:
@@ -142,7 +147,7 @@ def main(config: "DictConfig"):
     if config.checkpoint_path is not None:
         print("loading in checkpoints!")
         try:
-            state_dict = torch.load(config.checkpoint_path, map_location=device)['model_state_dict'] # map to CPU so that it can fit on memory. should be prepared onto GPU later.
+            state_dict = torch.load(config.checkpoint_path + 'trainer.pt', map_location=device)['model_state_dict'] # map to CPU so that it can fit on memory. should be prepared onto GPU later.
             agent.model.load_state_dict(state_dict)
         except Exception as e:
             print("no checkpoint found, continuing")
