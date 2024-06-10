@@ -5,7 +5,7 @@ import sys
 from os.path import dirname, abspath
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 
-from archer.environment import TwentyQuestionsEnv, BatchedTwentyQuestionsEnv, BatchedGuessMyCityEnv, BatchedWebShopEnv, BatchedSellerEnv
+from archer.environment import TwentyQuestionsEnv, BatchedTwentyQuestionsEnv, BatchedGuessMyCityEnv, BatchedWebShopEnv, BatchedSellerEnv, LLMBatchedTwentyQuestionsEnv
 from archer.models import ArcherAgent, CHAIAgent
 from archer.algorithms import offpolicy_train_loop
 from archer.prompts import MISTRAL_TWENTY_QUESTIONS_TEMPLATE, mistral_twenty_questions_decode_actions
@@ -59,6 +59,7 @@ def main(config: "DictConfig"):
 
     # load environment
     if config.env_name == "twenty_questions":
+        # LLMBatchedTwentyQuestionsEnv is broken?
         env = BatchedTwentyQuestionsEnv(env_load_path=config.env_load_path, 
                                         device=device, 
                                         cache_dir=config.cache_dir)
@@ -119,13 +120,23 @@ def main(config: "DictConfig"):
     elif config.agent_type.lower() == "archer_llm":
         #only twenty questions is supported for LLM ArCHer
         print(">>> Using ArCHer agent with LLM")
+        if config.env_name == "twenty_questions":
+            template = MISTRAL_TWENTY_QUESTIONS_TEMPLATE
+        else:
+            template = None
+        
+        
         agent = ArcherAgent(device=device, accelerator=accelerator, 
                             temperature=config.temperature, do_sample=config.do_sample, 
                             policy_lm=config.policy_lm, critic_lm=config.critic_lm,
                             cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
-                            TEMPLATE=None, use_lora=config.use_lora,
+                            TEMPLATE=template, use_lora=config.use_lora,
                             eos_str=config.eos_str, model_path = global_model_path, use_bfloat16 = config.use_bfloat16)
-        decode_f = None # mistral_twenty_questions_decode_actions # We don't want to use this!
+        if config.env_name == "twenty_questions":
+            print(">>> Using custom decoding for twenty questions")
+            decode_f = mistral_twenty_questions_decode_actions 
+        else:
+            decode_f = None # mistral_twenty_questions_decode_actions # We don't want to use this!
         
         
     elif config.agent_type.lower() == "online_filteredbc":

@@ -38,4 +38,6 @@ max_grad_norm: 1.0
 # wandb logging
 use_wandb: True
 project_name: 'llm_rl_20qsubset'
-run_name: 'archer-acc-llm-1e-6'
+run_name: 'archer-acc-llm-1e-6-subset'
+
+use_bfloat16: True
