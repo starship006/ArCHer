@@ -40,6 +40,7 @@ class TwentyQuestionsEnv():
         self, 
         # word_list,  
         max_conversation_length: int=20,
+        simplified: bool=False,
     ):
         self.word_list = DEFAULT_OBJECT_LIST
         self.word_list =[ list(map(lambda x: x.lower(), word.split(";"))) for word in self.word_list]
@@ -49,6 +50,7 @@ class TwentyQuestionsEnv():
         self.curr_word = None
         self.history = ''
         self.done = True
+        self.simplified = simplified
 
     def is_correct(self, question):
         #check for the last word
@@ -66,6 +68,8 @@ class TwentyQuestionsEnv():
             answer = 'Yes.'
         elif 'no' in answer.strip().lower():
             answer = 'No.'
+        elif self.simplified and self.curr_word[0] in answer.strip().lower():
+            answer = self.curr_word[0]
         else:
             # print("question:  " + question)
             # print('answer: '+ answer)
@@ -105,6 +109,7 @@ class TwentyQuestionsEnv():
             oracle=self.oracle,
             word_list=self.word_list,
             max_conversation_length=self.max_conversation_length,
+            simplified=self.simplified
         )
 
 class BatchedTwentyQuestionsEnv():
@@ -115,12 +120,15 @@ class BatchedTwentyQuestionsEnv():
         device,
         max_conversation_length: int=20,
         bsize: int=32,
+        simplified: bool=False,
     ):
-        self.env_list = [TwentyQuestionsEnv(max_conversation_length) for _ in range(bsize)]
+        self.env_list = [TwentyQuestionsEnv(max_conversation_length, simplified) for _ in range(bsize)]
         self.bsize = bsize
         self.tokenizer = T5Tokenizer.from_pretrained("google/flan-t5-small")
         self.model = T5ForConditionalGeneration.from_pretrained("google/flan-t5-small", cache_dir=cache_dir).to(device)
         self.model.load_state_dict(torch.load(env_load_path)['model_state_dict'])
+        self.template = PROMPT_TEMPLATE_SIMPLIFIED if simplified else PROMPT_TEMPLATE
+        self.simplified = simplified
         # self.tokenizer = BartTokenizer.from_pretrained("facebook/bart-base")
         # self.model = BartForConditionalGeneration.from_pretrained("facebook/bart-base").to(device)
         # self.model.load_state_dict(torch.load('/home/yifei/llm_rl/20q_oracle/20q_bart_oracle.pt')['model_state_dict'])
@@ -128,9 +136,12 @@ class BatchedTwentyQuestionsEnv():
     def generate_answers(self, questions):
         curr_words = [env.curr_word[0].lower() for env in self.env_list]
         inputs = [f"The object is {curr_word}." + question for  curr_word, question in zip(curr_words, questions)]
-        encoder_ids = self.tokenizer(inputs ,padding=True, return_tensors='pt').to(self.model.device)
-        return self.tokenizer.batch_decode(self.model.generate(input_ids=encoder_ids['input_ids'], attention_mask=encoder_ids['attention_mask'],\
+        encoder_ids = self.tokenizer(inputs, padding=True, return_tensors='pt').to(self.model.device)
+        out = self.tokenizer.batch_decode(self.model.generate(input_ids=encoder_ids['input_ids'], attention_mask=encoder_ids['attention_mask'],\
                                                                 max_new_tokens=16, do_sample = False), skip_special_tokens= True)
+        if self.simplified:
+            out = [original if not "can i have a hint" in questions[i].lower() else curr_words[i] + "." for i, original in enumerate(out) ]
+        return out
 
     def reset(self, idx: Optional[int] = None):
         return [env.reset(idx) for env in self.env_list]
