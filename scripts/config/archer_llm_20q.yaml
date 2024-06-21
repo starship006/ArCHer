@@ -2,7 +2,6 @@ defaults:
   - default
   - _self_
 
-# checkpoint
 checkpoint_path: null
 save_path: '/work/09710/addief/ls6/seller_agents/checkpoints/archer_llm_20q_3'
 
@@ -17,16 +16,17 @@ policy_lm : 'mistralai/Mistral-7B-Instruct-v0.2'
 max_new_tokens: 64
 use_lora: True
 eos_str: null
+quantize: True
 
 capacity: 100000 #replay buffer size
 rollout_size: 32 #number of rollout trajectories for each update
 eval_size: 32 #number of trajectories for evaluation
-batch_size: 4
+batch_size: 8
 iterations: 2000 #total number of iterations
 epochs: 20 #number of epochs for the critic each iteration
 actor_epochs: 1 #number of epochs for the actor each iteration
 warmup_iter: 20 #number of iterations without updating the policy
-grad_accum_steps: 64
+grad_accum_steps: 16
 do_sample: True
 temperature: 1.0
 critic_lr: 1e-5

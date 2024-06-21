@@ -113,14 +113,16 @@ def main(config: "DictConfig"):
                             temperature=config.temperature, do_sample=config.do_sample, 
                             policy_lm=config.policy_lm, critic_lm=config.critic_lm,
                             cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
-                            eos_str='\n', model_path = global_model_path)
+                            eos_str='\n', model_path = global_model_path, quantize=config.quantize)
     elif config.agent_type.lower() == "archer_llm":
         #only twenty questions is supported for LLM ArCHer
         print(">>> Using ArCHer agent with LLM")
         if config.env_name == "twenty_questions":
             if config.simplified:
+                print(">>> Using simplified template and environment")
                 template = MISTRAL_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE
             else:
+                print(">>> Using regular template and environment")
                 template = MISTRAL_TWENTY_QUESTIONS_TEMPLATE
         else:
             template = None
@@ -131,7 +133,8 @@ def main(config: "DictConfig"):
                             policy_lm=config.policy_lm, critic_lm=config.critic_lm,
                             cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
                             TEMPLATE=template, use_lora=config.use_lora,
-                            eos_str=config.eos_str, model_path = global_model_path, use_bfloat16 = config.use_bfloat16)
+                            eos_str=config.eos_str, model_path = global_model_path,
+                            use_bfloat16 = config.use_bfloat16, quantize=config.quantize)
         if config.env_name == "twenty_questions":
             print(">>> Using custom decoding for twenty questions")
             decode_f = mistral_twenty_questions_decode_actions 
@@ -145,7 +148,8 @@ def main(config: "DictConfig"):
         agent = ArcherAgent(device=device, accelerator=accelerator, 
                             temperature=config.temperature, do_sample=config.do_sample, 
                             policy_lm=config.policy_lm, critic_lm=config.critic_lm,
-                            cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens)
+                            cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
+                            quantize=config.quantize)
     else:
         raise NotImplementedError("Agent not implemented.")
 

@@ -8,6 +8,7 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 import concurrent.futures
 # openai.util.logger.setLevel(logging.WARNING)
 PROMPT_TEMPLATE = 'You are playing a game called twenty questions with me. The rule of twenty question is that you are given a hidden word, and I am guessing what the word is within twenty questions. For every question, if it is an invalid question, you should answer "Invalid Question.". For any valid question, you should answer either "Yes." or "No.". Now the hidden word given to you is "{word}", and the question for the current round is "{question}". Your response is:'
+PROMPT_TEMPLATE_SIMPLIFIED = 'You are playing a game called twenty questions with me. The rule of twenty question is that you are given a hidden word, and I am guessing what the word is within twenty questions. For every question, if it is an invalid question, you should answer "Invalid Question.". For any valid question, you should answer either "Yes." or "No.". Now the hidden word given to you is "{word}", and the question for the current round is "{question}". Your response is:'
 DEFAULT_OBJECT_DICT = {
     "Sports": ["Basketball", "Football", "Baseball", "Soccer ball", "Golf ball", "Tennis ball", "Volleyball", "Tennis racket", "Baseball bat", "Helmet"],
     "Animals": ["Cat", "Dog", "Horse", "Cow", "Sheep", "Rabbit", "Lion", "Tiger", "Bear", "Elephant"],
@@ -140,7 +141,8 @@ class BatchedTwentyQuestionsEnv():
         out = self.tokenizer.batch_decode(self.model.generate(input_ids=encoder_ids['input_ids'], attention_mask=encoder_ids['attention_mask'],\
                                                                 max_new_tokens=16, do_sample = False), skip_special_tokens= True)
         if self.simplified:
-            out = [original if not "can i have a hint" in questions[i].lower() else curr_words[i] + "." for i, original in enumerate(out) ]
+
+            out = [original if not "can i have a hint" in questions[i].lower() else ("The answer is " + curr_words[i] + ".") for i, original in enumerate(out) ]
         return out
 
     def reset(self, idx: Optional[int] = None):
