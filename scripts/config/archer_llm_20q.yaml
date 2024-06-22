@@ -3,16 +3,19 @@ defaults:
   - _self_
 
 # checkpoint
-checkpoint_path: null
-save_path: '/home/yifei/llm_rl/20q/20q/archer_llm_20q_3'
+checkpoint_path: '/work/09840/codyrushing/ls6/20qcheck'
+save_path: '/work/09840/codyrushing/ls6/20qcheck'
+cache_dir: '/work/09840/codyrushing/ls6/20qcache'
 
 # env
 env_name: twenty_questions
-env_load_path: '/home/yifei/llm_rl/LLM_RL/20q_t5_oracle.pt'
+env_load_path: '/work/09840/codyrushing/ls6/models/20q_t5_oracle.pt'
+
+
 
 # model
 agent_type: 'archer_llm'
-policy_lm : 'mistralai/Mistral-7B-Instruct-v0.2'
+policy_lm : '/work/09840/codyrushing/ls6/models/Mistral-7B-Instruct-v0.2'
 max_new_tokens: 64
 use_lora: True
 eos_str: null

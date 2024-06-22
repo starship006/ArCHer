@@ -38,3 +38,4 @@ use_wandb: False
 
 # added
 model_path: null
+use_bfloat16: False

@@ -3,15 +3,16 @@ defaults:
   - _self_
 
 # checkpoint
-checkpoint_path: null
+checkpoint_path: '/work/09840/codyrushing/ls6/checkpoints'
 
 #  '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/sellerbot.pt'
-save_path: '~/checkpoints/sellerbot'
+save_path: '/work/09840/codyrushing/ls6/checkpoints'
+cache_dir: '/work/.cache'
 #model_path: '~/models/Llama-2-7b-hf'
 #model_path: '~/models/gpt2'
 
 # if importing from dataset
-model_path: '/data/Llama-2-7b-hf'
+model_path: '/work/09840/codyrushing/ls6/models/Mistral-7B-Instruct-v0.2'
 
 # env
 env_name: seller_env
@@ -20,26 +21,26 @@ env_load_path: 'NA'
 # model
 agent_type: 'archer_llm'
 #policy_lm : 'meta-llama/Llama-2-7b-hf'
-policy_lm : '/data/Llama-2-7b-hf'
-critic_lm : '/data/roberta-base'
+policy_lm : '/work/09840/codyrushing/ls6/models/Mistral-7B-Instruct-v0.2'
+critic_lm : '/work/09840/codyrushing/ls6/models/roberta-base'
 
 
 #policy_lm : 'openai-community/gpt2'
-max_new_tokens: 200
+max_new_tokens: 75 # yeah we jut need everything shorter...
 use_lora: True  # CHANGED
 eos_str: null
 
 
 # training hyperparameters
 capacity: 100000 #replay buffer size
-rollout_size: 128 #number of rollout trajectories for each update
-eval_size: 16 #number of trajectories for evaluation
-batch_size: 8 
+rollout_size: 24 # 128 #number of rollout trajectories for each update | the number of trajectories on each iteration # MAKE SURE THIS IS MULTIPLE OF MIN(4, BATCH_SIZE)  while capping is still in
+eval_size: 6 # 16 #number of trajectories for evaluation
+batch_size: 64 # 8 
 iterations: 2000 #total number of iterations
-epochs: 50 #number of epochs for the critic each iteration
+epochs: 15 # 20 #50 #number of epochs for the critic each iteration
 actor_epochs: 1 #number of epochs for the actor each iteration
-warmup_iter: 20 #number of iterations without updating the policy
-grad_accum_steps: 64
+warmup_iter: 20 # number of iterations without updating the policy
+grad_accum_steps: 12
 do_sample: True # added later
 temperature: 1.0 # added later 
 critic_lr: 1e-5
@@ -55,5 +56,7 @@ project_name: 'seller_bot'
 run_name: 'seller_bot'
 
 # other stuff that needs to get config'd because isc
-save_freq: 1 # VERY FREQUENT CHECKPOINTING!
-eval_freq: 1
+save_freq: 2 # VERY FREQUENT CHECKPOINTING!
+eval_freq: 4
+
+use_bfloat16: True
