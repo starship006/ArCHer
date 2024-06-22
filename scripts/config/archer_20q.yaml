@@ -8,7 +8,9 @@ save_path: '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/ar
 
 # env
 env_name: twenty_questions
-env_load_path: '/Users/codyrushing/Documents/dev/GitHub/seller_agents/checkpoints/20q_t5_oracle.pt'
+env_load_path: '/work/09710/addief/ls6//seller_agents/checkpoints/20q_t5_oracle.pt'
+
+simplified: False
 
 # training hyperparameters
 rollout_size: 128 #number of rollout trajectories for each update

@@ -1,33 +1,29 @@
-import torch
-import transformers
-from tqdm import tqdm
-import sys
+from datetime import timedelta
+from dotenv import load_dotenv
+import os
 from os.path import dirname, abspath
-sys.path.insert(0, dirname(dirname(abspath(__file__))))
+import sys
 
+from accelerate import Accelerator, DistributedDataParallelKwargs, InitProcessGroupKwargs
+from cycling_utils import TimestampedTimer, InterruptableDistributedSampler, MetricsTracker, AtomicDirectory
+import hydra
+import numpy as np
+from omegaconf import DictConfig, OmegaConf
+import torch
+import torch.nn as nn
+from tqdm import tqdm
+import transformers
+import wandb
+
+from archer.algorithms import offpolicy_train_loop
 from archer.environment import TwentyQuestionsEnv, BatchedTwentyQuestionsEnv, BatchedGuessMyCityEnv, BatchedWebShopEnv, BatchedSellerEnv, LLMBatchedTwentyQuestionsEnv
 from archer.models import ArcherAgent, CHAIAgent
-from archer.algorithms import offpolicy_train_loop
-from archer.prompts import MISTRAL_TWENTY_QUESTIONS_TEMPLATE, mistral_twenty_questions_decode_actions
+from archer.prompts import MISTRAL_TWENTY_QUESTIONS_TEMPLATE, MISTRAL_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE, mistral_twenty_questions_decode_actions
 from archer.utils import colorful_print
-import torch.nn as nn
-import numpy as np 
-import wandb
-from omegaconf import DictConfig, OmegaConf
-import os
-import hydra
-from accelerate import Accelerator
-from datetime import timedelta
-from accelerate import DistributedDataParallelKwargs, InitProcessGroupKwargs
+
+sys.path.insert(0, dirname(dirname(abspath(__file__))))
 transformers.logging.set_verbosity_error()
-
-from cycling_utils import TimestampedTimer
 timer = TimestampedTimer()
-from cycling_utils import InterruptableDistributedSampler, MetricsTracker, AtomicDirectory
-
-import os
-from dotenv import load_dotenv
-
 load_dotenv()
 WANDB_API_KEY = os.getenv('WANDB_API_KEY')
 
@@ -62,7 +58,8 @@ def main(config: "DictConfig"):
         # LLMBatchedTwentyQuestionsEnv is broken?
         env = BatchedTwentyQuestionsEnv(env_load_path=config.env_load_path, 
                                         device=device, 
-                                        cache_dir=config.cache_dir)
+                                        cache_dir=config.cache_dir,
+                                        simplified=config.simplified)
         eval_env = env
     elif config.env_name == "adventure":
         raise NotImplementedError("Adventure environment is not implemented due to issue in Jericho import.")
@@ -116,12 +113,17 @@ def main(config: "DictConfig"):
                             temperature=config.temperature, do_sample=config.do_sample, 
                             policy_lm=config.policy_lm, critic_lm=config.critic_lm,
                             cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
-                            eos_str='\n', model_path = global_model_path)
+                            eos_str='\n', model_path = global_model_path, quantize=config.quantize)
     elif config.agent_type.lower() == "archer_llm":
         #only twenty questions is supported for LLM ArCHer
         print(">>> Using ArCHer agent with LLM")
         if config.env_name == "twenty_questions":
-            template = MISTRAL_TWENTY_QUESTIONS_TEMPLATE
+            if config.simplified:
+                print(">>> Using simplified template and environment")
+                template = MISTRAL_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE
+            else:
+                print(">>> Using regular template and environment")
+                template = MISTRAL_TWENTY_QUESTIONS_TEMPLATE
         else:
             template = None
         
@@ -131,7 +133,8 @@ def main(config: "DictConfig"):
                             policy_lm=config.policy_lm, critic_lm=config.critic_lm,
                             cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
                             TEMPLATE=template, use_lora=config.use_lora,
-                            eos_str=config.eos_str, model_path = global_model_path, use_bfloat16 = config.use_bfloat16)
+                            eos_str=config.eos_str, model_path = global_model_path,
+                            use_bfloat16 = config.use_bfloat16, quantize=config.quantize)
         if config.env_name == "twenty_questions":
             print(">>> Using custom decoding for twenty questions")
             decode_f = mistral_twenty_questions_decode_actions 
@@ -145,7 +148,8 @@ def main(config: "DictConfig"):
         agent = ArcherAgent(device=device, accelerator=accelerator, 
                             temperature=config.temperature, do_sample=config.do_sample, 
                             policy_lm=config.policy_lm, critic_lm=config.critic_lm,
-                            cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens)
+                            cache_dir=config.cache_dir, max_new_tokens=config.max_new_tokens,
+                            quantize=config.quantize)
     else:
         raise NotImplementedError("Agent not implemented.")
 
