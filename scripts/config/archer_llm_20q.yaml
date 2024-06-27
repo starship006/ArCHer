@@ -1,30 +1,24 @@
 defaults:
   - default
+  - addie_filepaths
   - _self_
-
-# checkpoint
-checkpoint_path: '/work/09840/codyrushing/ls6/20qcheck'
-save_path: '/work/09840/codyrushing/ls6/20qcheck'
-cache_dir: '/work/09840/codyrushing/ls6/20qcache'
 
 # env
 env_name: twenty_questions
-env_load_path: '/work/09840/codyrushing/ls6/models/20q_t5_oracle.pt'
-
-
 
 # model
 agent_type: 'archer_llm'
-policy_lm : '/work/09840/codyrushing/ls6/models/Mistral-7B-Instruct-v0.2'
 max_new_tokens: 64
 use_lora: True
 eos_str: null
-quantize: True
+quantize: False
+simplified: True
 
 capacity: 100000 #replay buffer size
 rollout_size: 32 #number of rollout trajectories for each update
 eval_size: 32 #number of trajectories for evaluation
 batch_size: 8
+bsize: 32 # number of rollouts collected at once, ONLY IN 20Q ENV RIGHT NOW
 iterations: 2000 #total number of iterations
 epochs: 20 #number of epochs for the critic each iteration
 actor_epochs: 1 #number of epochs for the actor each iteration

@@ -62,7 +62,7 @@ def main(config: "DictConfig"):
         env = BatchedTwentyQuestionsEnv(env_load_path=config.env_load_path, 
                                         device=device, 
                                         cache_dir=config.cache_dir,
-                                        bsize=config.batch_size,
+                                        bsize=config.bsize,
                                         simplified=config.simplified)
         eval_env = env
     elif config.env_name == "adventure":
@@ -170,7 +170,7 @@ def main(config: "DictConfig"):
     if accelerator.is_main_process: timer.report("agent done | loading tokenizer")
     tokenizer = agent.tokenizer
     
-    if config.checkpoint_path is not None:
+    if config.checkpoint_path is not None and config.checkpoint_path != '':
         if config.checkpoint_path[-1] != '/':
             config.checkpoint_path += '/'
         print("loading in checkpoints!")

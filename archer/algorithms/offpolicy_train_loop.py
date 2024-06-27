@@ -100,7 +100,7 @@ def offpolicy_train_loop(env,\
         if accelerator.is_main_process:
             print(">>>Interacting with Environment")
             if accelerator.is_main_process: timer.report(f"train env interaction start | num_trajectories = {rollout_size}, env.bsize = {env.bsize}")
-            trajectories = batch_interact_environment(agent = agent,\
+            trajectories, extra_info = batch_interact_environment(agent = agent,\
                                             tokenizer= tokenizer,\
                                             env = env,\
                                             num_trajectories= rollout_size,\
@@ -113,13 +113,14 @@ def offpolicy_train_loop(env,\
             info = {"rollout.mean": np.mean([d[0]["trajectory_reward"] for d in trajectories]),\
                     "rollout.max": np.max([d[0]["trajectory_reward"] for d in trajectories]),\
                     "rollout.min": np.min([d[0]["trajectory_reward"] for d in trajectories])}
+            info.update({"cheating.mean": np.mean([cheating[-1] for cheating in extra_info]),})
             #print([d[0]["trajectory_reward"] for d in trajectories])
             #print(info)
             if (i+1) % eval_freq == 0:
                 if accelerator.is_main_process: timer.report("eval env interaction start")
                 old_sample = agent.do_sample
                 agent.do_sample = False
-                eval_trajectories =  batch_interact_environment(agent = agent,\
+                eval_trajectories, eval_extra_info =  batch_interact_environment(agent = agent,\
                                                     tokenizer= tokenizer,\
                                                     env = eval_env,\
                                                     num_trajectories=  max(eval_size, eval_env.bsize),\
@@ -132,6 +133,7 @@ def offpolicy_train_loop(env,\
                 info.update({"eval_rollout.mean": np.mean([d[0]["trajectory_reward"] for d in eval_trajectories]),\
                         "eval_rollout.max": np.max([d[0]["trajectory_reward"] for d in eval_trajectories]),\
                         "eval_rollout.min": np.min([d[0]["trajectory_reward"] for d in eval_trajectories]),})
+                info.update({"eval_cheating.mean": np.mean([cheating[-1] for cheating in eval_extra_info]),})
             
             if accelerator.is_main_process: timer.report("done gathering trajectories")
             all_trajectories += trajectories
