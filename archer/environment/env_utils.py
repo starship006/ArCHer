@@ -54,8 +54,7 @@ def batch_interact_environment(agent, tokenizer, env, num_trajectories,\
     
     bsize = env.bsize
     all_trajectories = []
-    YAP_TIME = False
-    
+    YAP_TIME = False    
     
     for num_t in tqdm(range(num_trajectories//bsize), disable = not use_tqdm):
         if accelerator.is_main_process: timer.report("trajectories gen" + str(num_t) + "of " + str(num_trajectories//bsize))

@@ -44,6 +44,7 @@ def offpolicy_train_loop(env,\
                 agent_type: str = "archer",
                 decode_f: callable = lambda x: x,
                 timer = None,
+                update_batch_size = 2,
                 **kwargs):
     assert timer != None
     
@@ -71,9 +72,14 @@ def offpolicy_train_loop(env,\
                                 grad_accum_steps=grad_accum_steps,
                                 max_grad_norm=max_grad_norm)
 
+    
+    if update_batch_size == 2:
+        print("\n\n\nWARNING WARNING WARNING\n\n\ni dont think you actually want a size of 2 lol\n\n\n")
+    if update_batch_size != batch_size:
+        print("Note that we have diff batch sizes")
         
         
-    replay_buffer= ReplayBuffer(batch_size= batch_size, capacity=capacity)
+    replay_buffer= ReplayBuffer(batch_size= update_batch_size, capacity=capacity)
     all_trajectories = []
     if os.path.exists(os.path.join(save_path, 'trainer.pt')):
         # print("Not using existing checkpoint")
@@ -103,9 +109,12 @@ def offpolicy_train_loop(env,\
                                             decode_f = decode_f, 
                                             accelerator = accelerator,
                                             timer = timer)
+            #print(trajectories)
             info = {"rollout.mean": np.mean([d[0]["trajectory_reward"] for d in trajectories]),\
                     "rollout.max": np.max([d[0]["trajectory_reward"] for d in trajectories]),\
                     "rollout.min": np.min([d[0]["trajectory_reward"] for d in trajectories])}
+            #print([d[0]["trajectory_reward"] for d in trajectories])
+            #print(info)
             if (i+1) % eval_freq == 0:
                 if accelerator.is_main_process: timer.report("eval env interaction start")
                 old_sample = agent.do_sample

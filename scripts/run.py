@@ -14,11 +14,13 @@ import torch.nn as nn
 from tqdm import tqdm
 import transformers
 import wandb
+print(os.getcwd())
 
+sys.path.insert(0, dirname(dirname(abspath(__file__))))
 from archer.algorithms import offpolicy_train_loop
 from archer.environment import TwentyQuestionsEnv, BatchedTwentyQuestionsEnv, BatchedGuessMyCityEnv, BatchedWebShopEnv, BatchedSellerEnv, LLMBatchedTwentyQuestionsEnv
 from archer.models import ArcherAgent, CHAIAgent
-from archer.prompts import MISTRAL_TWENTY_QUESTIONS_TEMPLATE, MISTRAL_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE, mistral_twenty_questions_decode_actions
+from archer.prompts import MISTRAL_TWENTY_QUESTIONS_TEMPLATE, MISTRAL_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE, mistral_twenty_questions_decode_actions, LLAMA_TWENTY_QUESTIONS_TEMPLATE
 from archer.utils import colorful_print
 
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
@@ -26,7 +28,6 @@ transformers.logging.set_verbosity_error()
 timer = TimestampedTimer()
 load_dotenv()
 WANDB_API_KEY = os.getenv('WANDB_API_KEY')
-
 
 
 CONFIG_NAME = "archer_20q"
@@ -45,7 +46,9 @@ def main(config: "DictConfig"):
     except:
         print(">>> Huggingface token not found.")
 
-    accelerator = Accelerator(InitProcessGroupKwargs(timeout=timedelta(18000)))
+    
+    timeout_kwargs = InitProcessGroupKwargs(timeout=timedelta(seconds=7200)) # Set the timeout to 2 hours
+    accelerator = Accelerator(kwargs_handlers=[timeout_kwargs])    
     device = accelerator.device
     
     if accelerator.is_main_process:  
@@ -59,6 +62,7 @@ def main(config: "DictConfig"):
         env = BatchedTwentyQuestionsEnv(env_load_path=config.env_load_path, 
                                         device=device, 
                                         cache_dir=config.cache_dir,
+                                        bsize=config.batch_size,
                                         simplified=config.simplified)
         eval_env = env
     elif config.env_name == "adventure":
@@ -120,10 +124,17 @@ def main(config: "DictConfig"):
         if config.env_name == "twenty_questions":
             if config.simplified:
                 print(">>> Using simplified template and environment")
-                template = MISTRAL_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE
+                if "llama" in config.policy_lm.lower():
+                    raise NotImplementedError("Generation prompt not implemented.")
+                else:
+                    template = MISTRAL_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE
+                
             else:
                 print(">>> Using regular template and environment")
-                template = MISTRAL_TWENTY_QUESTIONS_TEMPLATE
+                if "llama" in config.policy_lm.lower():
+                    template = LLAMA_TWENTY_QUESTIONS_TEMPLATE
+                else:
+                    template = MISTRAL_TWENTY_QUESTIONS_TEMPLATE
         else:
             template = None
         
@@ -160,6 +171,8 @@ def main(config: "DictConfig"):
     tokenizer = agent.tokenizer
     
     if config.checkpoint_path is not None:
+        if config.checkpoint_path[-1] != '/':
+            config.checkpoint_path += '/'
         print("loading in checkpoints!")
         try:
             state_dict = torch.load(config.checkpoint_path + 'trainer.pt', map_location=device)['model_state_dict'] # map to CPU so that it can fit on memory. should be prepared onto GPU later.

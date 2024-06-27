@@ -33,6 +33,8 @@ class ArcherTrainer():
         """
         super().__init__()
         self.agent = agent
+        self.count_learnable_parameters()
+        
         self.tokenizer = tokenizer
         self.lm_optimizer = torch.optim.Adam(agent.model.parameters(), lr = lm_lr)
         self.critic_optimizer = torch.optim.Adam(agent.critic.parameters(), lr = critic_lr)
@@ -156,6 +158,17 @@ class ArcherTrainer():
                 "residual_advantages.min": torch.min(residual_advantage),
                 "residual_advantages.std": torch.std(residual_advantage),}
 
+    def print_gpu_stats(self):
+        print(f"Memory Allocated: {torch.cuda.memory_allocated()} bytes")
+        print(f"Memory Reserved: {torch.cuda.memory_reserved()} bytes")
+        print(torch.cuda.memory_summary())
+
+
+    def count_learnable_parameters(self):
+        total_params = sum(p.numel() for p in self.agent.model.parameters() if p.requires_grad)
+        print(f"Total number of learnable parameters: {total_params}")
+
+
     def update(self, replay_buffer, no_update_actor=False):
         print("hi1")
         self.step += 1
@@ -197,7 +210,10 @@ class ArcherTrainer():
             #batchsize for the actor set to 1 for mistral due to memory concern
             #action_bsize = 2 if 'mistral' in self.agent.policy_lm else replay_buffer.batch_size
             action_bsize = replay_buffer.batch_size
-            for _ in range(self.actor_epochs):
+            for e in range(self.actor_epochs):
+                if self.accelerator.is_main_process:
+                    print(f">>>updating actor, epoch {e} of {self.actor_epochs}")
+                
                 data = [replay_buffer.sample(1) for _ in range(self.grad_accum_steps*replay_buffer.batch_size)]
                 grad_index = 0
                 for d in data:
