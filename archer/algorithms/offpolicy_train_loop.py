@@ -80,7 +80,7 @@ def offpolicy_train_loop(env,\
         print("Note that we have diff batch sizes")
         
         
-    replay_buffer= ReplayBuffer(batch_size= update_batch_size, capacity=capacity)
+    replay_buffer= ReplayBuffer(batch_size= batch_size, capacity=capacity)
     all_trajectories = []
     if os.path.exists(os.path.join(save_path, 'trainer.pt')):
         # print("Not using existing checkpoint")
