@@ -8,7 +8,7 @@ defaults:
 # env
 env_name: twenty_questions
 simplified: False
-
+bsize: 32 # number of rollouts collected at once, ONLY IN 20Q ENV RIGHT NOW
 
 # model
 agent_type: 'archer_llm'
@@ -26,7 +26,7 @@ update_batch_size: 12 # on h100 node: 12 works # 16 doesn't #8 works # from 32
 actor_epochs: 16 #number of epochs for the actor each iteration
 
 iterations: 2000 #total number of iterations
-epochs: 1 # CHANGED FOR DEBUGGING FROM 12 #20 #number of epochs for the critic each iteration
+epochs: 12  #20 #number of epochs for the critic each iteration
 
 warmup_iter: 20 #number of iterations without updating the policy
 grad_accum_steps: 8 #16
