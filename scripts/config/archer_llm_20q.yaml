@@ -3,33 +3,37 @@ defaults:
   - _self_
 
 # checkpoint
-checkpoint_path: '/work/09840/codyrushing/ls6/20qcheck'
-save_path: '/work/09840/codyrushing/ls6/20qcheck'
-cache_dir: '/work/09840/codyrushing/ls6/20qcache'
+checkpoint_path: null # '/work/09840/codyrushing/ls6/20qcheck_redo_b/' # ensure these end with /
+save_path: '/work/09840/codyrushing/ls6/20qcheck_redo_e/' # ensure these end with /
+cache_dir: '/work/09840/codyrushing/ls6/20qcache_redo_e/' # ensure these end with /
 
 # env
 env_name: twenty_questions
 env_load_path: '/work/09840/codyrushing/ls6/models/20q_t5_oracle.pt'
-
+simplified: False
 
 
 # model
 agent_type: 'archer_llm'
-policy_lm : '/work/09840/codyrushing/ls6/models/Mistral-7B-Instruct-v0.2'
+critic_lm: "roberta-base" #"/work/09840/codyrushing/ls6/models/gpt2" #    # #
+policy_lm : '/work/09840/codyrushing/ls6/models/Meta-Llama-3-8B-Instruct'
 max_new_tokens: 64
 use_lora: True
 eos_str: null
-quantize: True
+quantize: False
 
 capacity: 100000 #replay buffer size
 rollout_size: 32 #number of rollout trajectories for each update
 eval_size: 32 #number of trajectories for evaluation
-batch_size: 8
+batch_size: 32 # from 32 since 32 sometimes hits cuda limit. so does 28.s
+update_batch_size: 12 # on h100 node: 12 works # 16 doesn't #8 works # from 32
+actor_epochs: 16 #number of epochs for the actor each iteration
+
 iterations: 2000 #total number of iterations
-epochs: 20 #number of epochs for the critic each iteration
-actor_epochs: 1 #number of epochs for the actor each iteration
+epochs: 1 # CHANGED FOR DEBUGGING FROM 12 #20 #number of epochs for the critic each iteration
+
 warmup_iter: 20 #number of iterations without updating the policy
-grad_accum_steps: 16
+grad_accum_steps: 8 #16
 do_sample: True
 temperature: 1.0
 critic_lr: 1e-5
@@ -37,7 +41,7 @@ lm_lr: 2e-6
 env_idx: null #set to null if don't want to reset to a specific environment
 gamma: 0.95 #discount factor
 tau: 0.1 #soft update parameter
-max_grad_norm: 1.0
+max_grad_norm: 2.0
 
 # wandb logging
 use_wandb: True
@@ -45,3 +49,5 @@ project_name: 'llm_rl_20qsubset'
 run_name: 'archer-acc-llm-1e-6-subset'
 
 use_bfloat16: True
+save_freq: 2
+eval_freq: 4

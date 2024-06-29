@@ -62,7 +62,8 @@ def offpolicy_train_loop(env,\
                                 actor_epochs = actor_epochs,
                                 grad_accum_steps=grad_accum_steps,
                                 max_grad_norm=max_grad_norm,
-                                timer = timer)
+                                timer = timer,
+                                actor_batch_size = update_batch_size)
     elif agent_type.lower() == "online_filteredbc":
         trainer = BCTrainer(agent=agent,\
                                 tokenizer=tokenizer,\

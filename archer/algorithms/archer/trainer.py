@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from archer.data import DummyDataset
 import copy
 import threading
-from typing import Tuple
+from typing import Tuple, Optional
 import random
 import copy
 import time
@@ -15,6 +15,7 @@ def dict_mean(dict_list):
         for key in dict_list[0].keys():
             mean_dict[key] = sum(d[key] for d in dict_list) / len(dict_list)
     return mean_dict
+
 class ArcherTrainer():
     def __init__(self, agent,\
                  accelerator,\
@@ -27,7 +28,8 @@ class ArcherTrainer():
                     epochs: int = 3,
                     max_grad_norm: float=0.01,
                     actor_epochs: int = 3,
-                    timer = None):
+                    timer = None, 
+                    actor_batch_size: Optional[int] = None):
         """
         beta: coefficient for the bc loss
         """
@@ -48,6 +50,7 @@ class ArcherTrainer():
         self.max_grad_norm = max_grad_norm
         self.accelerator = accelerator
         self.critic_optimizer, self.lm_optimizer = self.accelerator.prepare(self.critic_optimizer, self.lm_optimizer)
+        self.actor_batch_size = actor_batch_size
         
         assert timer != None
         self.timer = timer
@@ -206,15 +209,19 @@ class ArcherTrainer():
         info_list = []
         #update actor
         if not no_update_actor:
-            print(">>>updating actor")
             #batchsize for the actor set to 1 for mistral due to memory concern
             #action_bsize = 2 if 'mistral' in self.agent.policy_lm else replay_buffer.batch_size
             action_bsize = replay_buffer.batch_size
+            if self.actor_batch_size is not None and replay_buffer.batch_size != self.actor_batch_size:
+                print("Overriding the replay buffer batch size with custom specified one - note that we are still going through replay_buffer.batch_size * self.grad_accum_steps data")
+                action_bsize = self.actor_batch_size
+            
             for e in range(self.actor_epochs):
                 if self.accelerator.is_main_process:
                     print(f">>>updating actor, epoch {e} of {self.actor_epochs}")
                 
-                data = [replay_buffer.sample(1) for _ in range(self.grad_accum_steps*replay_buffer.batch_size)]
+                #data = [replay_buffer.sample(1) for _ in range(self.grad_accum_steps*replay_buffer.batch_size)]
+                data = [replay_buffer.sample(1) for _ in range(self.grad_accum_steps*action_bsize)]    
                 grad_index = 0
                 for d in data:
                     for k,v in d.items():
