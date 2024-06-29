@@ -61,6 +61,7 @@ def batch_interact_environment(agent, tokenizer, env, num_trajectories,\
         
         done = False
         trajectories = [[] for _ in range(bsize)]
+        extra_info = [[] for _ in range(bsize)]
         # obs = reset_to(env, 69)
         batch_obs = env.reset(idx=env_idx)
         batch_done = [False,]*bsize
@@ -76,12 +77,13 @@ def batch_interact_environment(agent, tokenizer, env, num_trajectories,\
             for i,result in zip(range(bsize), batch_return):
                 if result is None:
                     continue
-                next_obs, r, done = result
+                next_obs, r, done, cheated = result #WE"RE GONNA HAVE TO EDIT ALL THE ENVIRONMENTS TO RETURN ANTOHER BOOL IN STEP BUT I THINK IT"S FINE BECAUSE WE WILL PROBABLY WANT SOME KIND OF EXTRA INFORMATION LIKE THIS IN SEVERAL ENVS
                 trajectories[i].append({"observation": batch_obs[i], \
                                 "next_observation": next_obs, \
                                 "reward": r, \
                                 "done": done, \
                                 "action": action[i]})
+                extra_info[i].append(cheated)
                 batch_obs[i] = next_obs
                 batch_done[i] = done
             if YAP_TIME and accelerator.is_main_process: timer.report("step: " + str(steps) + "processing done, looping")
@@ -92,4 +94,4 @@ def batch_interact_environment(agent, tokenizer, env, num_trajectories,\
         # breakpoint()
         # trajectories.append(post_f(add_trajectory_reward(trajectory)))
     print("batch ended")
-    return all_trajectories
+    return all_trajectories, extra_info

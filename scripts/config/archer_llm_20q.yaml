@@ -1,5 +1,6 @@
 defaults:
   - default
+  - addie_filepaths
   - _self_
 
 # checkpoint
