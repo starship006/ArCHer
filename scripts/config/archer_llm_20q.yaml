@@ -4,20 +4,15 @@ defaults:
   - _self_
 
 # checkpoint
-checkpoint_path: null # '/work/09840/codyrushing/ls6/20qcheck_redo_b/' # ensure these end with /
-save_path: '/work/09840/codyrushing/ls6/20qcheck_redo_e/' # ensure these end with /
-cache_dir: '/work/09840/codyrushing/ls6/20qcache_redo_e/' # ensure these end with /
 
 # env
 env_name: twenty_questions
-env_load_path: '/work/09840/codyrushing/ls6/models/20q_t5_oracle.pt'
 simplified: False
 
 
 # model
 agent_type: 'archer_llm'
-critic_lm: "roberta-base" #"/work/09840/codyrushing/ls6/models/gpt2" #    # #
-policy_lm : '/work/09840/codyrushing/ls6/models/Meta-Llama-3-8B-Instruct'
+critic_lm: "roberta-base" 
 max_new_tokens: 64
 use_lora: True
 eos_str: null
