@@ -66,8 +66,11 @@ class TwentyQuestionsEnv():
         return guess in self.curr_word
     
     def _step(self, question, answer):
+        reward = -1
         if self.simplified and "can i have a hint" in question.lower():
             self.cheated = 1
+            reward = 0
+            self.count -= 1
             answer = f"The answer is {self.curr_word[0]}."
         elif 'yes' in answer.strip().lower():
             answer = 'Yes.'
@@ -84,7 +87,6 @@ class TwentyQuestionsEnv():
         # if self.count == self.max_conversation_length:
         #     print("The word was", self.curr_word[0])
         done = (answer.replace('.', '').lower() == 'yes') and self.is_correct(question)
-        reward = -1
         if done:
             reward = 0
         self.done = done or self.count == self.max_conversation_length

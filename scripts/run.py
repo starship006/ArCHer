@@ -20,7 +20,7 @@ sys.path.insert(0, dirname(dirname(abspath(__file__))))
 from archer.algorithms import offpolicy_train_loop
 from archer.environment import TwentyQuestionsEnv, BatchedTwentyQuestionsEnv, BatchedGuessMyCityEnv, BatchedWebShopEnv, BatchedSellerEnv, LLMBatchedTwentyQuestionsEnv
 from archer.models import ArcherAgent, CHAIAgent
-from archer.prompts import MISTRAL_TWENTY_QUESTIONS_TEMPLATE, MISTRAL_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE, mistral_twenty_questions_decode_actions, LLAMA_TWENTY_QUESTIONS_TEMPLATE
+from archer.prompts import MISTRAL_TWENTY_QUESTIONS_TEMPLATE, MISTRAL_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE, mistral_twenty_questions_decode_actions, LLAMA_TWENTY_QUESTIONS_TEMPLATE, LLAMA_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE
 from archer.utils import colorful_print
 
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
@@ -125,7 +125,7 @@ def main(config: "DictConfig"):
             if config.simplified:
                 print(">>> Using simplified template and environment")
                 if "llama" in config.policy_lm.lower():
-                    raise NotImplementedError("Generation prompt not implemented.")
+                    template = LLAMA_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE
                 else:
                     template = MISTRAL_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE
                 
