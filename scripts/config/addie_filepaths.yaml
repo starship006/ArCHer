@@ -3,10 +3,10 @@ cache_dir: '/work/09710/addief/ls6/seller_agents/.cache/'
 
 # checkpoint
 checkpoint_path: '' #'/work/09710/addief/ls6/seller_agents/checkpoints/archer_llm_20q_3_g_a16/'
-save_path: '/work/09710/addief/ls6/seller_agents/checkpoints/archer_llm_20q_llama_fail/'
+save_path: '/work/09710/addief/ls6/seller_agents/checkpoints/archer_llm_20q_mistral-cheat/'
 
 #env
 env_load_path: '/work/09710/addief/ls6/seller_agents/checkpoints/20q_t5_oracle.pt'
 
 #policy
-policy_lm : '/work/09710/addief/ls6/models/Meta-Llama-3-8B-Instruct' # 'mistralai/Mistral-7B-Instruct-v0.2' #
+policy_lm : 'mistralai/Mistral-7B-Instruct-v0.2' # '/work/09710/addief/ls6/models/Meta-Llama-3-8B-Instruct' 

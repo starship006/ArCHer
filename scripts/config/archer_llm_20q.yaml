@@ -7,7 +7,7 @@ defaults:
 
 # env
 env_name: twenty_questions
-simplified: False
+simplified: True
 bsize: 32 # number of rollouts collected at once, ONLY IN 20Q ENV RIGHT NOW
 
 # model
@@ -21,8 +21,8 @@ quantize: False
 capacity: 100000 #replay buffer size
 rollout_size: 32 #number of rollout trajectories for each update
 eval_size: 32 #number of trajectories for evaluation
-batch_size: 32 # from 32 since 32 sometimes hits cuda limit. so does 28.s
-update_batch_size: 12 # on h100 node: 12 works # 16 doesn't #8 works # from 32
+batch_size: 8 # from 32 since 32 sometimes hits cuda limit. so does 28.s
+update_batch_size: 2 # on h100 node: 12 works # 16 doesn't #8 works # from 32
 actor_epochs: 16 #number of epochs for the actor each iteration
 
 iterations: 2000 #total number of iterations
@@ -37,12 +37,12 @@ lm_lr: 2e-6
 env_idx: null #set to null if don't want to reset to a specific environment
 gamma: 0.95 #discount factor
 tau: 0.1 #soft update parameter
-max_grad_norm: 2.0
+max_grad_norm: 1.0
 
 # wandb logging
 use_wandb: True
 project_name: 'llm_rl_20qsubset'
-run_name: 'archer-acc-llm-1e-6-subset'
+run_name: 'archer-acc-llm-mistral'
 
 use_bfloat16: True
 save_freq: 2
