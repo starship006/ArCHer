@@ -1,6 +1,6 @@
 # from .text_nav_env import ContextualTextNavEnv
 from .env_utils import batch_interact_environment
-from .twenty_questions import TwentyQuestionsEnv, BatchedTwentyQuestionsEnv
+from .twenty_questions import TwentyQuestionsEnv, BatchedTwentyQuestionsEnv, DEFAULT_OBJECT_DICT
 # from .craiglist import CraiglistEnv, BatchedCraiglistEnv
 #from .adventure_env import BatchedAdventureEnv
 # from .alfworld_env import BatchedAlfWorldEnv

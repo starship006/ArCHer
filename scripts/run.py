@@ -20,9 +20,8 @@ sys.path.insert(0, dirname(dirname(abspath(__file__))))
 from archer.algorithms import offpolicy_train_loop
 from archer.environment import TwentyQuestionsEnv, BatchedTwentyQuestionsEnv, BatchedGuessMyCityEnv, BatchedWebShopEnv, BatchedSellerEnv, LLMBatchedTwentyQuestionsEnv
 from archer.models import ArcherAgent, CHAIAgent
-from archer.prompts import MISTRAL_TWENTY_QUESTIONS_TEMPLATE, MISTRAL_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE, mistral_twenty_questions_decode_actions, LLAMA_TWENTY_QUESTIONS_TEMPLATE, LLAMA_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE
+from archer.prompts import get_template, mistral_twenty_questions_decode_actions
 from archer.utils import colorful_print
-
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 transformers.logging.set_verbosity_error()
 timer = TimestampedTimer()
@@ -121,20 +120,9 @@ def main(config: "DictConfig"):
     elif config.agent_type.lower() == "archer_llm":
         #only twenty questions is supported for LLM ArCHer
         print(">>> Using ArCHer agent with LLM")
+
         if config.env_name == "twenty_questions":
-            if config.simplified:
-                print(">>> Using simplified template and environment")
-                if "llama" in config.policy_lm.lower():
-                    template = LLAMA_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE
-                else:
-                    template = MISTRAL_TWENTY_QUESTIONS_SIMPLIFIED_TEMPLATE
-                
-            else:
-                print(">>> Using regular template and environment")
-                if "llama" in config.policy_lm.lower():
-                    template = LLAMA_TWENTY_QUESTIONS_TEMPLATE
-                else:
-                    template = MISTRAL_TWENTY_QUESTIONS_TEMPLATE
+            template = get_template(simplified=config.simplified, subset=config.subset, policy_lm=config.policy_lm)
         else:
             template = None
         

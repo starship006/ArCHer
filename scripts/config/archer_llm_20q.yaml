@@ -8,6 +8,7 @@ defaults:
 # env
 env_name: twenty_questions
 simplified: True
+subset: True
 bsize: 32 # number of rollouts collected at once, ONLY IN 20Q ENV RIGHT NOW
 
 # model
@@ -29,7 +30,7 @@ iterations: 2000 #total number of iterations
 epochs: 12  #20 #number of epochs for the critic each iteration
 
 warmup_iter: 20 #number of iterations without updating the policy
-grad_accum_steps: 8 #16
+grad_accum_steps: 12 #16
 do_sample: True
 temperature: 1.0
 critic_lr: 1e-5
